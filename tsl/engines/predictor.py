@@ -61,6 +61,7 @@ class Predictor(pl.LightningModule):
                  loss_fn: Optional[Callable] = None,
                  scale_target: bool = False,
                  metrics: Optional[Mapping[str, Metric]] = None,
+                 is_learned_scales_model: bool = False,
                  *,
                  model_class: Optional[Type] = None,
                  model_kwargs: Optional[Mapping] = None,
@@ -73,6 +74,7 @@ class Predictor(pl.LightningModule):
         self.model_cls = model_class
         self.model_kwargs = model_kwargs or dict()
         self._model_fwd_signature = None  # automatic set on model assignment
+        self.is_learned_scales_model = is_learned_scales_model
 
         self.optim_class = optim_class
         self.optim_kwargs = optim_kwargs or dict()
@@ -282,7 +284,11 @@ class Predictor(pl.LightningModule):
 
         if forward_kwargs is None:
             forward_kwargs = dict()
-        y_hat = self.forward(**inputs, **forward_kwargs)
+        scales = None
+        if self.is_learned_scales_model:
+            y_hat, scales = self.forward(**inputs, **forward_kwargs)
+        else:
+            y_hat = self.forward(**inputs, **forward_kwargs)
         # Rescale outputs
         if postprocess:
             trans = transform.get('y')
@@ -290,8 +296,12 @@ class Predictor(pl.LightningModule):
                 y_hat = trans.inverse_transform(y_hat)
         if return_target:
             y = targets.get('y')
-            return y, y_hat, mask
-        return y_hat
+            if scales is None:
+                return y, y_hat, mask
+            return y, y_hat, mask, scales
+        if scales is None:
+            return y_hat
+        return y_hat, scales
 
     def predict_step(self, batch, batch_idx, dataloader_idx=None):
         """"""
@@ -299,12 +309,18 @@ class Predictor(pl.LightningModule):
         x, y, mask, transform = self._unpack_batch(batch)
 
         # Make predictions
-        y_hat = self.predict_batch(batch, preprocess=False, postprocess=True)
+        scales = None
+        if self.is_learned_scales_model:
+            y_hat, scales = self.predict_batch(batch, preprocess=False, postprocess=True)
+        else:
+            y_hat = self.predict_batch(batch, preprocess=False, postprocess=True)
 
         output = dict(**y, y_hat=y_hat)
         if mask is not None:
             output['mask'] = mask
-        return output
+        if scales is None:
+            return output
+        return output, scales
 
     def collate_prediction_outputs(self, outputs):
         """
