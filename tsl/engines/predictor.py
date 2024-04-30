@@ -286,7 +286,7 @@ class Predictor(pl.LightningModule):
         if forward_kwargs is None:
             forward_kwargs = dict()
         scales = None
-        if self.is_learned_scales_model:
+        if return_scales:
             y_hat, scales = self.forward(**inputs, **forward_kwargs)
         else:
             y_hat = self.forward(**inputs, **forward_kwargs)
