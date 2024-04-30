@@ -248,6 +248,7 @@ class Predictor(pl.LightningModule):
                       preprocess: bool = False,
                       postprocess: bool = True,
                       return_target: bool = False,
+                      return_scales: bool = False,
                       **forward_kwargs):
         """This method takes as input a :class:`~tsl.data.Data` object and
         outputs the predictions.
@@ -296,12 +297,12 @@ class Predictor(pl.LightningModule):
                 y_hat = trans.inverse_transform(y_hat)
         if return_target:
             y = targets.get('y')
-            if scales is None:
-                return y, y_hat, mask
-            return y, y_hat, mask, scales
-        if scales is None:
-            return y_hat
-        return y_hat, scales
+            if return_scales:
+                return y, y_hat, mask, scales
+            return y, y_hat, mask
+        if return_scales:
+            return y_hat, scales
+        return y_hat
 
     def predict_step(self, batch, batch_idx, dataloader_idx=None):
         """"""
@@ -311,7 +312,7 @@ class Predictor(pl.LightningModule):
         # Make predictions
         scales = None
         if self.is_learned_scales_model:
-            y_hat, scales = self.predict_batch(batch, preprocess=False, postprocess=True)
+            y_hat, scales = self.predict_batch(batch, preprocess=False, postprocess=True, return_scales=True)
         else:
             y_hat = self.predict_batch(batch, preprocess=False, postprocess=True)
 
