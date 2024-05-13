@@ -6,7 +6,7 @@ from torchmetrics.utilities.checks import _check_same_shape
 
 import tsl
 
-from .functional import mape, smape
+from .functional import mape, smape, rse
 from .metric_base import MaskedMetric
 
 
@@ -52,6 +52,29 @@ class MaskedMAPE(MaskedMetric):
     def __init__(self, mask_nans=False, at=None, **kwargs: Any):
         super(MaskedMAPE, self).__init__(
             metric_fn=mape,
+            mask_nans=mask_nans,
+            mask_inf=True,
+            metric_fn_kwargs={'reduction': 'none'},
+            at=at,
+            **kwargs,
+        )
+
+class MaskedRSE(MaskedMetric):
+    """Mean Absolute Percentage Error Metric.
+
+    Args:
+        mask_nans (bool, optional): Whether to automatically mask nan values.
+        at (int, optional): Whether to compute the metric only w.r.t. a certain
+            time step.
+    """
+
+    is_differentiable: bool = True
+    higher_is_better: bool = False
+    full_state_update: bool = False
+
+    def __init__(self, mask_nans=False, at=None, **kwargs: Any):
+        super(MaskedRSE, self).__init__(
+            metric_fn=rse,
             mask_nans=mask_nans,
             mask_inf=True,
             metric_fn_kwargs={'reduction': 'none'},

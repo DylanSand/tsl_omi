@@ -11,6 +11,7 @@ __all__ = [
     'mape',
     'mse',
     'rmse',
+    'rse',
     'nrmse',
     'nrmse_2',
     'r2',
@@ -296,6 +297,44 @@ def rmse(
     """
     err = torch.square(y_hat - y)
     return torch.sqrt(_masked_reduce(err, reduction, mask))
+
+def rse(
+    y_hat: torch.Tensor,
+    y: torch.Tensor,
+    mask: Optional[torch.Tensor] = None,
+    reduction: ReductionType = 'mean',
+) -> MetricOutputType:
+    r"""Compute the `Root Relative Squared Error (RMSE)
+    <https://en.wikipedia.org/wiki/Root-mean-square_deviation>`_ between the
+    estimate :math:`\hat{y}` and the true value :math:`y`, i.e.
+
+    .. math::
+
+        \text{RMSE} = \sqrt{\frac{\sum_{i=1}^n (\hat{y}_i - y_i)^2}{n}}
+
+    Args:
+        y_hat (torch.Tensor): The estimated variable.
+        y (torch.Tensor): The ground-truth variable.
+        mask (torch.Tensor, optional): If provided, compute the metric using
+            only the values at valid indices (with :attr:`mask` set to
+            :obj:`True`).
+            (default: :obj:`None`)
+        reduction (str): Specifies the reduction to apply to the output:
+            ``'mean'`` | ``'sum'``. ``'mean'``: the sum of the output will be
+            divided by the number of elements in the output, ``'sum'``: the
+            output will be summed.
+            (default: ``'mean'``)
+
+    Returns:
+        float: The Root Relative Squared Error.
+    """
+    err = torch.square(y_hat - y)
+    if mask is not None:
+        err = err[mask]
+        err = torch.sqrt(err / torch.square(torch.mean(y[mask]) - y[mask]))
+    else:
+        err = torch.sqrt(err / torch.square(torch.mean(y) - y))
+    return err
 
 
 def nrmse(
