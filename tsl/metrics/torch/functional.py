@@ -329,7 +329,7 @@ def rse(
         float: The Root Relative Squared Error.
     """
     err = torch.square(y_hat - y)
-    err = _masked_reduce(err, 'sum', mask, nan_to_zero)
+    err = _masked_reduce(err, 'sum', mask)
     if mask is not None:
         err = torch.sqrt(err / _masked_reduce(torch.square(torch.mean(y[mask]) - y[mask]), 'sum', mask))
     else:
