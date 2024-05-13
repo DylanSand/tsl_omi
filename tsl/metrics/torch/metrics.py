@@ -207,7 +207,7 @@ class MaskedRSE(MaskedMetric):
     higher_is_better: bool = False
     full_state_update: bool = False
     def __init__(self, mask_nans=False, mask_inf=False, at=None, **kwargs: Any):
-        super(MaskedMRE, self).__init__(
+        super(MaskedRSE, self).__init__(
             metric_fn=F.mse_loss,
             mask_nans=mask_nans,
             mask_inf=mask_inf,
