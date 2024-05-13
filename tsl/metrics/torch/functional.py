@@ -298,45 +298,6 @@ def rmse(
     err = torch.square(y_hat - y)
     return torch.sqrt(_masked_reduce(err, reduction, mask))
 
-def rse(
-    y_hat: torch.Tensor,
-    y: torch.Tensor,
-    mask: Optional[torch.Tensor] = None,
-    reduction: ReductionType = 'mean',
-) -> MetricOutputType:
-    r"""Compute the `Root Relative Squared Error (RMSE)
-    <https://en.wikipedia.org/wiki/Root-mean-square_deviation>`_ between the
-    estimate :math:`\hat{y}` and the true value :math:`y`, i.e.
-
-    .. math::
-
-        \text{RMSE} = \sqrt{\frac{\sum_{i=1}^n (\hat{y}_i - y_i)^2}{n}}
-
-    Args:
-        y_hat (torch.Tensor): The estimated variable.
-        y (torch.Tensor): The ground-truth variable.
-        mask (torch.Tensor, optional): If provided, compute the metric using
-            only the values at valid indices (with :attr:`mask` set to
-            :obj:`True`).
-            (default: :obj:`None`)
-        reduction (str): Specifies the reduction to apply to the output:
-            ``'mean'`` | ``'sum'``. ``'mean'``: the sum of the output will be
-            divided by the number of elements in the output, ``'sum'``: the
-            output will be summed.
-            (default: ``'mean'``)
-
-    Returns:
-        float: The Root Relative Squared Error.
-    """
-    err = torch.square(y_hat - y)
-    err = _masked_reduce(err, 'sum', mask)
-    y_mean = _masked_reduce(y, 'mean', mask)
-    if mask is not None:
-        err = torch.sqrt(err / _masked_reduce(torch.square(y_mean - y[mask]), 'sum', mask))
-    else:
-        err = torch.sqrt(err / _masked_reduce(torch.square(y_mean - y), 'sum', mask))
-    return err
-
 
 def nrmse(
     y_hat: torch.Tensor,
@@ -463,6 +424,56 @@ def r2(
 
     variance = mse(mean_val, y, mask, reduction, nan_to_zero)
     return 1.0 - (mse_ / variance)
+
+def rse(
+    y_hat: torch.Tensor,
+    y: torch.Tensor,
+    mask: Optional[torch.Tensor] = None,
+    reduction: ReductionType = 'mean',
+    nan_to_zero: bool = False,
+    mean_axis: Union[int, Tuple] = None,
+) -> MetricOutputType:
+    r"""Compute the `coefficient of determination
+    <https://en.wikipedia.org/wiki/Coefficient_of_determination>`_ :math:`R^2`
+    between the estimate :math:`\hat{y}` and the true value :math:`y`, i.e.
+
+    .. math::
+
+        R^{2} = 1 - \frac{\sum_{i} (\hat{y}_i - y_i)^2}
+        {\sum_{i} (\bar{y} - y_i)^2}
+
+    where :math:`\bar{y}=\frac{1}{n}\sum_{i=1}^n y_i` is the mean of :math:`y`.
+
+    Args:
+        y_hat (torch.Tensor): The estimated variable.
+        y (torch.Tensor): The ground-truth variable.
+        mask (torch.Tensor, optional): If provided, compute the metric using
+            only the values at valid indices (with :attr:`mask` set to
+            :obj:`True`).
+        reduction (str): Specifies the reduction to apply to the output:
+            ``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``: no reduction will
+            be applied, ``'mean'``: the sum of the output will be divided by the
+            number of elements in the output, ``'sum'``: the output will be
+            summed. (default: ``'mean'``)
+        nan_to_zero (bool): If :obj:`True`, then masked values in output are
+            converted to :obj:`0`. This has an effect only when :attr:`mask` is
+            not :obj:`None` and :attr:`reduction` is :obj:`'none'`.
+            (default: :obj:`False`)
+        mean_axis (int, Tuple, optional): the axis along which the mean of y is
+            computed, to compute the variance of y needed in the denominator
+            of the R2 formula.
+    Returns:
+        float | torch.Tensor: The :math:`R^2`.
+    """
+    mse_ = mse(y_hat, y, mask, reduction, nan_to_zero)
+
+    # compute mean(s) of target data
+    if mean_axis is None:
+        mean_axis = tuple(range(y.dim()))
+    mean_val = torch.mean(y, dim=mean_axis, keepdims=True)
+
+    variance = mse(mean_val, y, mask, reduction, nan_to_zero)
+    return torch.sqrt(mse_ / variance)
 
 
 def mre(
