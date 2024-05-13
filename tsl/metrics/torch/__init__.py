@@ -9,7 +9,6 @@ from .metrics import (
     MaskedMRE,
     MaskedMSE,
     MaskedSMAPE,
-    MaskedRSE,
 )
 from .pinball_loss import MaskedPinballLoss
 
@@ -29,7 +28,6 @@ masked_metric_classes = [
     'MaskedMRE',
     'MaskedMAPE',
     'MaskedSMAPE',
-    'MaskedRSE',
     'MaskedPinballLoss',
 ]
 
