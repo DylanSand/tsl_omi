@@ -330,10 +330,11 @@ def rse(
     """
     err = torch.square(y_hat - y)
     err = _masked_reduce(err, 'sum', mask)
+    y_mean = _masked_reduce(y, 'mean', mask)
     if mask is not None:
-        err = torch.sqrt(err / _masked_reduce(torch.square(torch.mean(y[mask]) - y[mask]), 'sum', mask))
+        err = torch.sqrt(err / _masked_reduce(torch.square(y_mean - y[mask]), 'sum', mask))
     else:
-        err = torch.sqrt(err / _masked_reduce(torch.square(torch.mean(y) - y), 'sum', mask))
+        err = torch.sqrt(err / _masked_reduce(torch.square(y_mean - y), 'sum', mask))
     return err
 
 
